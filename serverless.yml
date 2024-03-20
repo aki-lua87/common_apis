@@ -1,0 +1,100 @@
+service: common-api
+
+plugins:
+  - serverless-python-requirements
+
+provider:
+  name: aws
+  runtime: python3.10
+  region: ap-northeast-1
+  stage: dev
+  iamRoleStatements:
+    # DynamoDBへのアクセス権限を付与
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+      Resource: "arn:aws:dynamodb:ap-northeast-1:*:*"
+    # S3へのアクセス権限を付与
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource: "arn:aws:s3:::*"
+  layers:
+    - Ref: PythonRequirementsLambdaLayer
+  deploymentBucket:
+    name: ${aws:accountId}-serverless-deploy
+    blockPublicAccess: true
+
+custom:
+  defaultStage: dev
+  resourceNamePrefix: ${self:provider.stage}-${self:service}
+  tableName: ${self:custom.resourceNamePrefix}-table
+  bucketName: ${aws:accountId}-${self:custom.resourceNamePrefix}-contents
+  pythonRequirements:
+    dockerizePip: true
+    dockerImage: public.ecr.aws/sam/build-python3.10:latest
+    layer:
+      name: ${self:custom.resourceNamePrefix}-piputils
+      compatibleRuntimes:
+        - python3.10
+    noDeploy:
+      - boto3
+
+package:
+  individually: true
+  patterns:
+    - "!**/*"
+
+functions:
+  batch_update_holo_talents:
+    handler: lambda/batch_update_holo_talents/handler.main
+    timeout: 30
+    package:
+      patterns:
+        - lambda/batch_update_holo_talents/handler.py
+    environment:
+      BUCKET_NAME: ${self:custom.bucketName}
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    # events -> 手動実行
+  get_holo_talents_info:
+    handler: lambda/get_holo_talents_info/handler.main
+    package:
+      patterns:
+        - lambda/get_holo_talents_info/handler.py
+    environment:
+      BUCKET_NAME: ${self:custom.bucketName}
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    events:
+      - http:
+          path: /hololive/talents
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    MainDynamoDbTable:
+      Type: "AWS::DynamoDB::Table"
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: pkey
+            AttributeType: S
+          - AttributeName: skey
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pkey
+            KeyType: HASH
+          - AttributeName: skey
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.tableName}
+    ContentsS3:
+      Type: AWS::S3::Bucket
+      DeletionPolicy: Retain
+      Properties:
+        AccessControl: Private
+        BucketName: ${self:custom.bucketName}
