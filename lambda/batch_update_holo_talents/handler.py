@@ -10,9 +10,6 @@ FILE_PATH = 'hololive/talents.json'
 
 
 def get_all_links():
-    # HTMLファイルを開く
-    # with open('1.html', 'r', encoding='utf-8') as f:
-    #     contents = f.read()
     html_text = requests.get(TARGET_URL).text
     soup = BeautifulSoup(html_text, 'html.parser')
     # 特定のURLで始まる<a>タグを見つける
@@ -23,9 +20,6 @@ def get_all_links():
 
 
 def get_talent_info(url):
-    # HTMLファイルを開く
-    # with open('sirakami.html', 'r', encoding='utf-8') as f:
-    #     contents = f.read()
     html_text = requests.get(url).text
     soup = BeautifulSoup(html_text, 'html.parser')
     tarent_info = {}
@@ -62,29 +56,28 @@ def get_talent_info(url):
     dt_elements = div.find_all('dt')
     dd_elements = div.find_all('dd')
     # <dt>要素のテキストをキーとし、<dd>要素のテキストを値とする辞書を作成する
-    data = {dt.text.strip(): dd.text.replace('\n', '').replace('\r', '').replace(' ', '').strip() for dt, dd in zip(dt_elements, dd_elements)}
+    temp_data = {dt.text.strip(): dd.text.replace('\n', '').replace('\r', '').replace(' ', '').strip() for dt, dd in zip(dt_elements, dd_elements)}
+    insert_data = {}
     # キーの日本語を可能な限り英語に変換するためにdataをループさせてキー名を取得する
-    for key in list(data.keys()):
+    for key in list(temp_data.keys()):
         # print(key)
         # キー名を変換する
         if key == 'ユニット':
-            # ユニットの場合はスラッシュ区切りで複数の所属がある場合があるため、リストに変換する
-            data['affiliation'] = data.pop(key).split('/')
-            # data['affiliation'] = data.pop(key)
+            insert_data['unit'] = temp_data.pop(key).split('/')
         elif key == '誕生日':
-            data['birthday'] = data.pop(key)
+            insert_data['birthday'] = temp_data.pop(key)
         elif key == '身長':
-            data['height'] = data.pop(key)
+            insert_data['height'] = temp_data.pop(key)
         elif key == 'デビュー日':
-            data['debut'] = data.pop(key)
+            insert_data['debut'] = temp_data.pop(key)
         elif key == '初配信日':
-            data['first_live_date'] = data.pop(key)
+            insert_data['debut_stream'] = temp_data.pop(key)
         elif key == 'イラストレーター':
-            data['illustrator'] = data.pop(key)
-        elif key == 'ハッシュタグ':
-            # いろいろなハッシュタグがあるけど共通化できなそうなので諦める
-            data['hashtag'] = data.pop(key)
-    tarent_info.update(data)
+            insert_data['illustrator'] = temp_data.pop(key)
+        # elif key == 'ハッシュタグ':
+        #     # いろいろなハッシュタグがあるけど共通化できなそうなので諦める
+        #     temp_data['hashtag'] = temp_data.pop(key)
+    tarent_info.update(insert_data)
     # print(tarent_info)
     return tarent_info
 
