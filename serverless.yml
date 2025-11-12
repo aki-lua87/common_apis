@@ -46,6 +46,7 @@ package:
     - "!**/*"
 
 functions:
+  # hololive
   batch_update_holo_talents:
     handler: lambda/batch_update_holo_talents/handler.main
     timeout: 30
@@ -71,7 +72,21 @@ functions:
           path: /hololive/talents
           method: get
           cors: true
-
+  # QR Code
+  generate_qr_code:
+    handler: lambda/generate_qr_code/handler.main
+    package:
+      patterns:
+        - lambda/generate_qr_code/handler.py
+    environment:
+      BUCKET_NAME: ${self:custom.bucketName}
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    events:
+      - http:
+          path: /qrcode/generate
+          method: get
+          cors: true
 resources:
   Resources:
     MainDynamoDbTable:
