@@ -21,10 +21,10 @@ def main(event, context):
         # 生成したQRコードをレスポンスとして返す
         return {
             'statusCode': 200,
-            # 'headers': {
-            #     'Content-Type': 'image/png'
-            # },
-            # "isBase64Encoded": True,
+            'headers': {
+                'Content-Type': 'image/png'
+            },
+            "isBase64Encoded": True,
             # バイナリデータをBase64エンコードして返す
             'body': encoded_image
         }
